@@ -16,27 +16,31 @@ func main() {
 		log.Fatal(http.ListenAndServe("127.0.0.1:9099", nil))
 	}()
 
-	var someTransport http.RoundTripper = &http.Transport{
+	var originalTransport http.RoundTripper = &http.Transport{
 		MaxIdleConns:       10,
 		IdleConnTimeout:    30 * time.Second,
 		DisableCompression: true,
 	}
 
-	someTransport = instrumented_http.NewInstrumentedRoundTripper(someTransport, &instrumented_http.Callbacks{
-		PathCallback:  instrumented_http.IdentityCallback,
-		QueryCallback: instrumented_http.IdentityCallback,
-	})
+	instrumentedTransport := instrumented_http.NewTransport(originalTransport,
+		&instrumented_http.Callbacks{
+			PathProcessor:  instrumented_http.IdentityProcessor,
+			QueryProcessor: instrumented_http.IdentityProcessor,
+		},
+	)
 
-	client := &http.Client{Transport: someTransport}
+	client := &http.Client{Transport: instrumentedTransport}
 
 	for {
-		resp, err := client.Get("https://kubernetes.io/docs/search/?q=pods")
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer resp.Body.Close()
+		func() {
+			resp, err := client.Get("https://kubernetes.io/docs/search/?q=pods")
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer resp.Body.Close()
 
-		fmt.Printf("%d\n", resp.StatusCode)
+			fmt.Printf("%d\n", resp.StatusCode)
+		}()
 
 		time.Sleep(10 * time.Second)
 	}

@@ -23,12 +23,14 @@ func main() {
 
 	config := aws.NewConfig()
 
-	config = config.WithHTTPClient(instrumented_http.NewInstrumentedClient(config.HTTPClient, &instrumented_http.Callbacks{
-		PathCallback: func(path string) string {
-			parts := strings.Split(path, "/")
-			return parts[len(parts)-1]
-		},
-	}))
+	config = config.WithHTTPClient(
+		instrumented_http.NewClient(config.HTTPClient, &instrumented_http.Callbacks{
+			PathProcessor: func(path string) string {
+				parts := strings.Split(path, "/")
+				return parts[len(parts)-1]
+			},
+		}),
+	)
 
 	session, err := session.NewSessionWithOptions(session.Options{
 		Config:            *config,

@@ -26,8 +26,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	instrumentedClient := instrumented_http.NewInstrumentedClient(defaultClient, &instrumented_http.Callbacks{
-		PathCallback: func(path string) string {
+	instrumentedClient := instrumented_http.NewClient(defaultClient, &instrumented_http.Callbacks{
+		PathProcessor: func(path string) string {
 			parts := strings.Split(path, "/")
 			return parts[len(parts)-1]
 		},

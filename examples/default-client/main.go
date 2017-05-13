@@ -16,19 +16,21 @@ func main() {
 		log.Fatal(http.ListenAndServe("127.0.0.1:9099", nil))
 	}()
 
-	client := instrumented_http.NewInstrumentedClient(nil, &instrumented_http.Callbacks{
-		PathCallback:  instrumented_http.IdentityCallback,
-		QueryCallback: instrumented_http.IdentityCallback,
+	client := instrumented_http.NewClient(nil, &instrumented_http.Callbacks{
+		PathProcessor:  instrumented_http.IdentityProcessor,
+		QueryProcessor: instrumented_http.IdentityProcessor,
 	})
 
 	for {
-		resp, err := client.Get("https://kubernetes.io/docs/search/?q=pods")
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer resp.Body.Close()
+		func() {
+			resp, err := client.Get("https://kubernetes.io/docs/search/?q=pods")
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer resp.Body.Close()
 
-		fmt.Printf("%d\n", resp.StatusCode)
+			fmt.Printf("%d\n", resp.StatusCode)
+		}()
 
 		time.Sleep(10 * time.Second)
 	}
