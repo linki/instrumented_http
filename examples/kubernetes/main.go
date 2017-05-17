@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/linki/instrumented_http"
@@ -28,10 +27,7 @@ func main() {
 
 	config.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
 		return instrumented_http.NewTransport(rt, &instrumented_http.Callbacks{
-			PathProcessor: func(path string) string {
-				parts := strings.Split(path, "/")
-				return parts[len(parts)-1]
-			},
+			PathProcessor: instrumented_http.LastPathElementProcessor,
 		})
 	}
 
