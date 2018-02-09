@@ -25,3 +25,4 @@ Browse the [examples](examples) directory to see how `instrumented_http` works w
 * the [Kubernetes](https://godoc.org/k8s.io/client-go) client: [examples/kubernetes](examples/kubernetes)
 * [Resty](https://github.com/go-resty/resty): [examples/resty](examples/resty)
 * [Sling](https://github.com/dghubble/sling): [examples/sling](examples/sling)
+* [Gentleman](https://github.com/h2non/gentleman): [examples/gentleman](examples/gentleman)
