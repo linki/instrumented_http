@@ -11,6 +11,10 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+const (
+	BogusStatusCode = 999
+)
+
 // Transport is a http.RoundTripper that collects Prometheus metrics of every
 // request it processes. It allows to be configured with callbacks that process
 // request path and query into a suitable label value.
@@ -21,8 +25,9 @@ type Transport struct {
 
 // Callbacks is a collection of callbacks passed to Transport.
 type Callbacks struct {
-	PathProcessor  func(string) string
-	QueryProcessor func(string) string
+	PathProcessor       func(string) string
+	QueryProcessor      func(string) string
+	StatusCodeProcessor func(int) string
 }
 
 // StatusCodeExtractorFunc is used to provide the status code label.
@@ -55,45 +60,8 @@ var (
 		parts := strings.Split(path, "/")
 		return parts[len(parts)-1]
 	}
-
-	// SuccessfulStatusCodeExtractor accepts a slice of valid status codes and set the status
-	// label to either "success" or "failed", "success" being returned if the response code is
-	// in the slice provided.
-	//
-	// This is not set for each intrumented http client this is set too all instances.
-	//
-	// Example:
-	// ```golang
-	// instrumented_http.StatusCodeExtractor = instrumented_http.SuccessfulStatusCodeExtractor([]int {
-	//   http.StatusOk,
-	// })
-	// ```
-	SuccessfulStatusCodeExtractor = func(s []int) StatusCodeExtractorFunc {
-		return func(r *http.Response) string {
-			if r == nil {
-				return "failed"
-			}
-			for _, c := range s {
-				if c == r.StatusCode {
-					return "success"
-				}
-			}
-			return "failed"
-		}
-	}
-
-	// StatusCodeExtractor accepts an response and will return a string value for the
-	// metric label "status". This allows you to customise the value based on the
-	// resonse.
-	// By defalt we return the status code in string format and 999 is the response
-	// is nil.
-	StatusCodeExtractor StatusCodeExtractorFunc = func(r *http.Response) string {
-		if r == nil {
-			return "999"
-		}
-
-		return fmt.Sprintf("%d", r.StatusCode)
-	}
+	// IntToStringProcessor converts an integer value to its string representation.
+	IntToStringProcessor = func(input int) string { return fmt.Sprintf("%d", input) }
 )
 
 // init registers the Prometheus metric globally when the package is loaded.
@@ -104,11 +72,16 @@ func init() {
 // RoundTrip implements http.RoundTripper. It forwards the request to the
 // next RoundTripper and measures the time it took in Prometheus summary.
 func (it *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
+	statusCode := BogusStatusCode
+
 	// Remember the current time.
 	now := time.Now()
 
 	// Make the request using the next RoundTripper.
 	resp, err := it.next.RoundTrip(req)
+	if resp != nil {
+		statusCode = resp.StatusCode
+	}
 
 	// Observe the time it took to make the request.
 	RequestDurationSeconds.WithLabelValues(
@@ -117,7 +90,7 @@ func (it *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 		it.cbs.PathProcessor(req.URL.Path),
 		it.cbs.QueryProcessor(req.URL.RawQuery),
 		req.Method,
-		StatusCodeExtractor(resp),
+		it.cbs.StatusCodeProcessor(statusCode),
 	).Observe(time.Since(now).Seconds())
 
 	// return the response and error reported from the next RoundTripper.
@@ -159,6 +132,10 @@ func NewTransport(next http.RoundTripper, cbs *Callbacks) http.RoundTripper {
 	}
 	if cbs.QueryProcessor == nil {
 		cbs.QueryProcessor = EliminatingProcessor
+	}
+	// By default, status code is set as is.
+	if cbs.StatusCodeProcessor == nil {
+		cbs.StatusCodeProcessor = IntToStringProcessor
 	}
 
 	return &Transport{next: next, cbs: cbs}
