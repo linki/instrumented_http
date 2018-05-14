@@ -19,12 +19,6 @@ func main() {
 	client := instrumented_http.NewClient(nil, &instrumented_http.Callbacks{
 		PathProcessor:  instrumented_http.IdentityProcessor,
 		QueryProcessor: instrumented_http.IdentityProcessor,
-		StatusCodeProcessor: func(code int) string {
-			if code >= 500 {
-				return "failure"
-			}
-			return "success"
-		},
 	})
 
 	for {
