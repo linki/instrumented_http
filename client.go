@@ -25,13 +25,10 @@ type Transport struct {
 
 // Callbacks is a collection of callbacks passed to Transport.
 type Callbacks struct {
-	PathProcessor       func(string) string
-	QueryProcessor      func(string) string
-	StatusCodeProcessor func(int) string
+	PathProcessor  func(string) string
+	QueryProcessor func(string) string
+	CodeProcessor  func(int) string
 }
-
-// StatusCodeExtractorFunc is used to provide the status code label.
-type StatusCodeExtractorFunc func(r *http.Response) string
 
 const (
 	// Metrics created can be identified by this label value.
@@ -62,6 +59,13 @@ var (
 	}
 	// IntToStringProcessor converts an integer value to its string representation.
 	IntToStringProcessor = func(input int) string { return fmt.Sprintf("%d", input) }
+	// ServerErrorCodeProcessor exports all failed responses (5xx, timeouts, ...) as status=failure
+	ServerErrorCodeProcessor = func(code int) string {
+		if code >= http.StatusInternalServerError {
+			return "failure"
+		}
+		return "success"
+	}
 )
 
 // init registers the Prometheus metric globally when the package is loaded.
@@ -90,7 +94,7 @@ func (it *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 		it.cbs.PathProcessor(req.URL.Path),
 		it.cbs.QueryProcessor(req.URL.RawQuery),
 		req.Method,
-		it.cbs.StatusCodeProcessor(statusCode),
+		it.cbs.CodeProcessor(statusCode),
 	).Observe(time.Since(now).Seconds())
 
 	// return the response and error reported from the next RoundTripper.
@@ -134,8 +138,8 @@ func NewTransport(next http.RoundTripper, cbs *Callbacks) http.RoundTripper {
 		cbs.QueryProcessor = EliminatingProcessor
 	}
 	// By default, status code is set as is.
-	if cbs.StatusCodeProcessor == nil {
-		cbs.StatusCodeProcessor = IntToStringProcessor
+	if cbs.CodeProcessor == nil {
+		cbs.CodeProcessor = IntToStringProcessor
 	}
 
 	return &Transport{next: next, cbs: cbs}
