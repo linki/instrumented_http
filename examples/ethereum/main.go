@@ -36,7 +36,7 @@ func main() {
 			log.Fatal(err)
 		}
 
-		fmt.Printf("%d\n", hexutil.MustDecodeUint64(blockHeight.String()))
+		fmt.Printf("%d\n", blockHeight)
 
 		time.Sleep(10 * time.Second)
 	}
