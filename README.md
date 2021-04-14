@@ -22,6 +22,7 @@ Browse the [examples](examples) directory to see how `instrumented_http` works w
 * a custom [http.Transport](https://golang.org/pkg/net/http/#Transport): [examples/custom-transport](examples/custom-transport)
 * the [Google CloudDNS](https://godoc.org/google.golang.org/api/dns/v1) client: [examples/googledns](examples/googledns)
 * the [AWS Route53](https://godoc.org/github.com/aws/aws-sdk-go/service/route53) client: [examples/route53](examples/route53)
+* the [AWS Route53 (v2)](https://godoc.org/github.com/aws/aws-sdk-go-v2/service/route53) client: [examples/route53v2](examples/route53v2)
 * the [Kubernetes](https://godoc.org/k8s.io/client-go) client: [examples/kubernetes](examples/kubernetes)
 * [Resty](https://github.com/go-resty/resty): [examples/resty](examples/resty)
 * [Sling](https://github.com/dghubble/sling): [examples/sling](examples/sling)
